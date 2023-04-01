@@ -12,12 +12,13 @@ from tasks.qa.utils_qa import postprocess_qa_predictions
 
 
 def Convert_tydia_to_squad(example):
-    new_example = {}
-    new_example['id'] = example['paragraphs'][0]['qas'][0]['id']
-    new_example['title'] = example['paragraphs'][0]['qas'][0]['id']   # example['paragraphs'][0]['title']
-    new_example['context'] = example['paragraphs'][0]['context']
-    new_example['question'] = example['paragraphs'][0]['qas'][0]['question']
-    new_example['answers'] = {}
+    new_example = {
+        'id': example['paragraphs'][0]['qas'][0]['id'],
+        'title': example['paragraphs'][0]['qas'][0]['id'],
+        'context': example['paragraphs'][0]['context'],
+        'question': example['paragraphs'][0]['qas'][0]['question'],
+        'answers': {},
+    }
     new_example['answers']['text'] = [example['paragraphs'][0]['qas'][0]['answers'][0]['text']]
     new_example['answers']['answer_start'] = [example['paragraphs'][0]['qas'][0]['answers'][0]['answer_start']]
     return new_example
@@ -48,16 +49,29 @@ class SQuAD:
 
         ## Lifu : add for evalating xquad and mlqa
         if data_args.dataset_name=='xquad':
-            raw_datasets = load_dataset(data_args.dataset_name, data_args.dataset_name+ '.'+ data_args.lang)
+            raw_datasets = load_dataset(
+                data_args.dataset_name,
+                f'{data_args.dataset_name}.{data_args.lang}',
+            )
             column_names = raw_datasets['validation'].column_names
 
         elif data_args.dataset_name=='mlqa':
             ## it is not done yet   :Lifu
-            raw_datasets = load_dataset(data_args.dataset_name, data_args.dataset_name+ '.'+ data_args.lang + '.'+ data_args.lang)
+            raw_datasets = load_dataset(
+                data_args.dataset_name,
+                f'{data_args.dataset_name}.{data_args.lang}.{data_args.lang}',
+            )
             column_names = raw_datasets['validation'].column_names
         elif data_args.dataset_name=='tydia':
             #raw_datasets = load_dataset('json', data_files='data/tydiqa/tydiqa-goldp-v1.1-train/tydiqa.'+ data_args.lang + '.train.json', field='data')
-            raw_datasets = load_dataset('json', data_files={'train': 'data/tydiqa/tydiqa-goldp-v1.1-train/tydiqa.'+ data_args.lang + '.train.json', 'validation': 'data/tydiqa/tydiqa-goldp-v1.1-dev/tydiqa.'+ data_args.lang + '.dev.json'}, field='data')
+            raw_datasets = load_dataset(
+                'json',
+                data_files={
+                    'train': f'data/tydiqa/tydiqa-goldp-v1.1-train/tydiqa.{data_args.lang}.train.json',
+                    'validation': f'data/tydiqa/tydiqa-goldp-v1.1-dev/tydiqa.{data_args.lang}.dev.json',
+                },
+                field='data',
+            )
             # {'paragraphs': [{'context': 'Quantum field theory naturally began with the study of electromagnetic interactions, as the electromagnetic field was the only known classical field as of the 1920s.[8]:1', 'qas': [{'answers': [{'answer_start': 159, 'text': '1920s'}], 'id': '12', 'question': 'When was quantum field theory developed?'}]}]}
             raw_datasets['train'] = raw_datasets['train'].map(Convert_tydia_to_squad)
             raw_datasets['validation'] = raw_datasets['validation'].map(Convert_tydia_to_squad)
@@ -89,11 +103,9 @@ class SQuAD:
                 self.train_dataset = self.train_dataset.select(range(data_args.max_train_samples))
 
         if training_args.do_eval:
-            if data_args.dataset_name=='mlqa':
+            if data_args.dataset_name == 'mlqa':
                 ### test mlqa directly on test for mlqa
                 self.eval_examples = raw_datasets['test']
-            elif data_args.dataset_name=='tydia':
-                self.eval_examples = raw_datasets['validation']
             else:
                 self.eval_examples = raw_datasets['validation']
 
@@ -141,7 +153,7 @@ class SQuAD:
         for i, offsets in enumerate(offset_mapping):
             input_ids = tokenized['input_ids'][i]
             cls_index = input_ids.index(self.tokenizer.cls_token_id)
-            
+
             sequence_ids = tokenized.sequence_ids(i)
             sample_index = sample_maping[i]
             answers = examples['answers'][sample_index]
@@ -163,7 +175,10 @@ class SQuAD:
 
                 # Detect if the answer is out of the span 
                 # (in which case this feature is labeled with the CLS index).
-                if not (offsets[token_start_index][0] <= start_char and offsets[token_end_index][1] >= end_char):
+                if (
+                    offsets[token_start_index][0] > start_char
+                    or offsets[token_end_index][1] < end_char
+                ):
                     tokenized["start_positions"].append(cls_index)
                     tokenized["end_positions"].append(cls_index)
                 else:
@@ -175,7 +190,7 @@ class SQuAD:
                     while offsets[token_end_index][1] >= end_char:
                         token_end_index -= 1
                     tokenized["end_positions"].append(token_end_index + 1)
-            
+
         return tokenized
 
     def prepare_eval_dataset(self, examples):
@@ -257,16 +272,29 @@ class SQuAD_seq2seq:
 
         ## Lifu : add for evalating xquad and mlqa
         if data_args.dataset_name=='xquad':
-            raw_datasets = load_dataset(data_args.dataset_name, data_args.dataset_name+ '.'+ data_args.lang)
+            raw_datasets = load_dataset(
+                data_args.dataset_name,
+                f'{data_args.dataset_name}.{data_args.lang}',
+            )
             column_names = raw_datasets['validation'].column_names
 
         elif data_args.dataset_name=='mlqa':
             ## it is not done yet   :Lifu
-            raw_datasets = load_dataset(data_args.dataset_name, data_args.dataset_name+ '.'+ data_args.lang + '.'+ data_args.lang)
+            raw_datasets = load_dataset(
+                data_args.dataset_name,
+                f'{data_args.dataset_name}.{data_args.lang}.{data_args.lang}',
+            )
             column_names = raw_datasets['validation'].column_names
         elif data_args.dataset_name=='tydia':
             #raw_datasets = load_dataset('json', data_files='data/tydiqa/tydiqa-goldp-v1.1-train/tydiqa.'+ data_args.lang + '.train.json', field='data')
-            raw_datasets = load_dataset('json', data_files={'train': 'data/tydiqa/tydiqa-goldp-v1.1-train/tydiqa.'+ data_args.lang + '.train.json', 'validation': 'data/tydiqa/tydiqa-goldp-v1.1-dev/tydiqa.'+ data_args.lang + '.dev.json'}, field='data')
+            raw_datasets = load_dataset(
+                'json',
+                data_files={
+                    'train': f'data/tydiqa/tydiqa-goldp-v1.1-train/tydiqa.{data_args.lang}.train.json',
+                    'validation': f'data/tydiqa/tydiqa-goldp-v1.1-dev/tydiqa.{data_args.lang}.dev.json',
+                },
+                field='data',
+            )
             # {'paragraphs': [{'context': 'Quantum field theory naturally began with the study of electromagnetic interactions, as the electromagnetic field was the only known classical field as of the 1920s.[8]:1', 'qas': [{'answers': [{'answer_start': 159, 'text': '1920s'}], 'id': '12', 'question': 'When was quantum field theory developed?'}]}]}
             raw_datasets['train'] = raw_datasets['train'].map(Convert_tydia_to_squad)
             raw_datasets['validation'] = raw_datasets['validation'].map(Convert_tydia_to_squad)
@@ -298,16 +326,14 @@ class SQuAD_seq2seq:
                 load_from_cache_file=True,
                 desc="Running tokenizer on train dataset",
             )
-    
+
             if data_args.max_train_samples is not None:
                 self.train_dataset = self.train_dataset.select(range(data_args.max_train_samples))
 
         if training_args.do_eval:
-            if data_args.dataset_name=='mlqa':
+            if data_args.dataset_name == 'mlqa':
                 ### test mlqa directly on test for mlqa
                 self.eval_examples = raw_datasets['test']
-            elif data_args.dataset_name=='tydia':
-                self.eval_examples = raw_datasets['validation']
             else:
                 self.eval_examples = raw_datasets['validation']
 

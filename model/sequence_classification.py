@@ -74,7 +74,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
             if self.config.problem_type is None:
                 if self.num_labels == 1:
                     self.config.problem_type = "regression"
-                elif self.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
+                elif self.num_labels > 1 and labels.dtype in [torch.long, torch.int]:
                     self.config.problem_type = "single_label_classification"
                 else:
                     self.config.problem_type = "multi_label_classification"
@@ -114,7 +114,7 @@ class BertPrefixForSequenceClassification(BertPreTrainedModel):
 
         for param in self.bert.parameters():
             param.requires_grad = False
-        
+
         self.pre_seq_len = config.pre_seq_len
         self.n_layer = config.num_hidden_layers
         self.n_head = config.num_attention_heads
@@ -123,14 +123,10 @@ class BertPrefixForSequenceClassification(BertPreTrainedModel):
         self.prefix_tokens = torch.arange(self.pre_seq_len).long()
         self.prefix_encoder = PrefixEncoder(config)
 
-        bert_param = 0
-        for name, param in self.bert.named_parameters():
-            bert_param += param.numel()
-        all_param = 0
-        for name, param in self.named_parameters():
-            all_param += param.numel()
+        bert_param = sum(param.numel() for name, param in self.bert.named_parameters())
+        all_param = sum(param.numel() for name, param in self.named_parameters())
         total_param = all_param - bert_param
-        print('total param is {}'.format(total_param)) # 9860105
+        print(f'total param is {total_param}')
     
     def get_prompt(self, batch_size):
         prefix_tokens = self.prefix_tokens.unsqueeze(0).expand(batch_size, -1).to(self.bert.device)
@@ -190,7 +186,7 @@ class BertPrefixForSequenceClassification(BertPreTrainedModel):
             if self.config.problem_type is None:
                 if self.num_labels == 1:
                     self.config.problem_type = "regression"
-                elif self.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
+                elif self.num_labels > 1 and labels.dtype in [torch.long, torch.int]:
                     self.config.problem_type = "single_label_classification"
                 else:
                     self.config.problem_type = "multi_label_classification"
@@ -241,8 +237,7 @@ class BertPromptForSequenceClassification(BertPreTrainedModel):
     
     def get_prompt(self, batch_size):
         prefix_tokens = self.prefix_tokens.unsqueeze(0).expand(batch_size, -1).to(self.bert.device)
-        prompts = self.prefix_encoder(prefix_tokens)
-        return prompts
+        return self.prefix_encoder(prefix_tokens)
 
     def forward(
         self,
@@ -298,7 +293,7 @@ class BertPromptForSequenceClassification(BertPreTrainedModel):
             if self.config.problem_type is None:
                 if self.num_labels == 1:
                     self.config.problem_type = "regression"
-                elif self.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
+                elif self.num_labels > 1 and labels.dtype in [torch.long, torch.int]:
                     self.config.problem_type = "single_label_classification"
                 else:
                     self.config.problem_type = "multi_label_classification"
@@ -340,7 +335,7 @@ class RobertaPrefixForSequenceClassification(RobertaPreTrainedModel):
 
         for param in self.roberta.parameters():
             param.requires_grad = False
-        
+
         self.pre_seq_len = config.pre_seq_len
         self.n_layer = config.num_hidden_layers
         self.n_head = config.num_attention_heads
@@ -349,14 +344,12 @@ class RobertaPrefixForSequenceClassification(RobertaPreTrainedModel):
         self.prefix_tokens = torch.arange(self.pre_seq_len).long()
         self.prefix_encoder = PrefixEncoder(config)
 
-        bert_param = 0
-        for name, param in self.roberta.named_parameters():
-            bert_param += param.numel()
-        all_param = 0
-        for name, param in self.named_parameters():
-            all_param += param.numel()
+        bert_param = sum(
+            param.numel() for name, param in self.roberta.named_parameters()
+        )
+        all_param = sum(param.numel() for name, param in self.named_parameters())
         total_param = all_param - bert_param
-        print('total param is {}'.format(total_param)) # 9860105
+        print(f'total param is {total_param}')
 
     
     def get_prompt(self, batch_size):
@@ -416,7 +409,7 @@ class RobertaPrefixForSequenceClassification(RobertaPreTrainedModel):
             if self.config.problem_type is None:
                 if self.num_labels == 1:
                     self.config.problem_type = "regression"
-                elif self.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
+                elif self.num_labels > 1 and labels.dtype in [torch.long, torch.int]:
                     self.config.problem_type = "single_label_classification"
                 else:
                     self.config.problem_type = "multi_label_classification"
@@ -504,8 +497,7 @@ class RobertaPromptForSequenceClassification(RobertaPreTrainedModel):
     
     def get_prompt(self, batch_size):
         prefix_tokens = self.prefix_tokens.unsqueeze(0).expand(batch_size, -1).to(self.roberta.device)
-        prompts = self.prefix_encoder(prefix_tokens)
-        return prompts
+        return self.prefix_encoder(prefix_tokens)
 
     def forward(
         self,
@@ -563,7 +555,7 @@ class RobertaPromptForSequenceClassification(RobertaPreTrainedModel):
             if self.config.problem_type is None:
                 if self.num_labels == 1:
                     self.config.problem_type = "regression"
-                elif self.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
+                elif self.num_labels > 1 and labels.dtype in [torch.long, torch.int]:
                     self.config.problem_type = "single_label_classification"
                 else:
                     self.config.problem_type = "multi_label_classification"
@@ -610,7 +602,7 @@ class DebertaPrefixForSequenceClassification(DebertaPreTrainedModel):
 
         for param in self.deberta.parameters():
             param.requires_grad = False
-        
+
         self.pre_seq_len = config.pre_seq_len
         self.n_layer = config.num_hidden_layers
         self.n_head = config.num_attention_heads
@@ -619,14 +611,12 @@ class DebertaPrefixForSequenceClassification(DebertaPreTrainedModel):
         self.prefix_tokens = torch.arange(self.pre_seq_len).long()
         self.prefix_encoder = PrefixEncoder(config)
 
-        deberta_param = 0
-        for name, param in self.deberta.named_parameters():
-            deberta_param += param.numel()
-        all_param = 0
-        for name, param in self.named_parameters():
-            all_param += param.numel()
+        deberta_param = sum(
+            param.numel() for name, param in self.deberta.named_parameters()
+        )
+        all_param = sum(param.numel() for name, param in self.named_parameters())
         total_param = all_param - deberta_param
-        print('total param is {}'.format(total_param)) # 9860105
+        print(f'total param is {total_param}')
     
     def get_prompt(self, batch_size):
         prefix_tokens = self.prefix_tokens.unsqueeze(0).expand(batch_size, -1).to(self.deberta.device)
@@ -700,13 +690,12 @@ class DebertaPrefixForSequenceClassification(DebertaPreTrainedModel):
             else:
                 log_softmax = torch.nn.LogSoftmax(-1)
                 loss = -((log_softmax(logits) * labels).sum(-1)).mean()
-        if not return_dict:
-            output = (logits,) + outputs[1:]
-            return ((loss,) + output) if loss is not None else output
-        else:
+        if return_dict:
             return SequenceClassifierOutput(
                 loss=loss,
                 logits=logits,
                 hidden_states=outputs.hidden_states,
                 attentions=outputs.attentions,
             )
+        output = (logits,) + outputs[1:]
+        return ((loss,) + output) if loss is not None else output

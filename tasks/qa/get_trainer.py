@@ -56,23 +56,22 @@ def get_trainer(args):
 
         dataset = SQuAD(tokenizer, data_args, training_args, qa_args)
 
-    else:
-        if 'mt5' in model_args.model_name_or_path:
-            # add later -Lifu
-            print('mt5')
-            training_args.generation_max_length = 30
-            training_args.predict_with_generate = True
-            #training_args.generation_num_beams = 5
-            #model = MT5ForConditionalGeneration.from_pretrained(model_args.model_name_or_path)
-            model = AutoModelForSeq2SeqLM.from_pretrained(model_args.model_name_or_path)
-            #tokenizer = PreTrainedTokenizerFast.from_pretrained(model_args.model_name_or_path)
-            tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path, use_fast=True)
-            dataset = SQuAD_seq2seq(tokenizer, data_args, training_args, qa_args)
-           
-        else:
-            model = get_model(model_args, TaskType.QUESTION_ANSWERING, config, fix_bert=False)
+    elif 'mt5' in model_args.model_name_or_path:
+        # add later -Lifu
+        print('mt5')
+        training_args.generation_max_length = 30
+        training_args.predict_with_generate = True
+        #training_args.generation_num_beams = 5
+        #model = MT5ForConditionalGeneration.from_pretrained(model_args.model_name_or_path)
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_args.model_name_or_path)
+        #tokenizer = PreTrainedTokenizerFast.from_pretrained(model_args.model_name_or_path)
+        tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path, use_fast=True)
+        dataset = SQuAD_seq2seq(tokenizer, data_args, training_args, qa_args)
 
-            dataset = SQuAD(tokenizer, data_args, training_args, qa_args)
+    else:
+        model = get_model(model_args, TaskType.QUESTION_ANSWERING, config, fix_bert=False)
+
+        dataset = SQuAD(tokenizer, data_args, training_args, qa_args)
 
     if 'mt5' in model_args.model_name_or_path:
 
@@ -82,7 +81,7 @@ def get_trainer(args):
           label_pad_token_id=-100,
           pad_to_multiple_of=8 if training_args.fp16 else None,
         )
-        
+
         trainer = QuestionAnsweringSeq2seqTrainer(
           model=model,
           args=training_args,

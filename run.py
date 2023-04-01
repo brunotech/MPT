@@ -49,7 +49,7 @@ def predict(trainer, predict_dataset=None):
     elif isinstance(predict_dataset, dict):
         
         for dataset_name, d in predict_dataset.items():
-            logger.info("*** Predict: %s ***" % dataset_name)
+            logger.info(f"*** Predict: {dataset_name} ***")
             predictions, labels, metrics = trainer.predict(d, metric_key_prefix="predict")
             predictions = np.argmax(predictions, axis=2)
 
@@ -90,11 +90,13 @@ if __name__ == '__main__':
 
     # Log on each process the small summary:
     logger.warning(
-        f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}"
-        + f"distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
+        (
+            f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}"
+            + f"distributed training: {training_args.local_rank != -1}, 16-bits training: {training_args.fp16}"
+        )
     )
     logger.info(f"Training/evaluation parameters {training_args}")
-    
+
 
     if not os.path.isdir("checkpoints") or not os.path.exists("checkpoints"):
         os.mkdir("checkpoints")
@@ -114,7 +116,7 @@ if __name__ == '__main__':
     elif data_args.task_name.lower() == "srl":
         assert data_args.dataset_name.lower() in SRL_DATASETS
         from tasks.srl.get_trainer import get_trainer
-    
+
     elif data_args.task_name.lower() == "qa":
         assert data_args.dataset_name.lower() in QA_DATASETS
         from tasks.qa.get_trainer import get_trainer
@@ -122,9 +124,11 @@ if __name__ == '__main__':
     elif data_args.task_name.lower() == "pos":
         assert data_args.dataset_name.lower() in POS_DATASETS
         from tasks.pos.get_trainer import get_trainer
-        
+
     else:
-        raise NotImplementedError('Task {} is not implemented. Please choose a task from: {}'.format(data_args.task_name, ", ".join(TASKS)))
+        raise NotImplementedError(
+            f'Task {data_args.task_name} is not implemented. Please choose a task from: {", ".join(TASKS)}'
+        )
 
     set_seed(training_args.seed)
 
@@ -147,7 +151,7 @@ if __name__ == '__main__':
 
     if training_args.do_train:
         train(trainer, training_args.resume_from_checkpoint, last_checkpoint)
-    
+
     if training_args.do_eval and (training_args.resume_from_checkpoint) and (not data_args.do_analysis):
          from transformers.file_utils import WEIGHTS_NAME
          #if not os.path.isfile(os.path.join(training_args.resume_from_checkpoint, WEIGHTS_NAME)):
@@ -174,7 +178,7 @@ if __name__ == '__main__':
                 raise ValueError(f"Can't find a valid checkpoint at {resume_from_checkpoint}")
          logger.info(f"Loading model from {training_args.resume_from_checkpoint}).")
          state_dict = torch.load(os.path.join(training_args.resume_from_checkpoint, WEIGHTS_NAME), map_location="cpu")
-         
+
          keys = set(state_dict.keys())
          #keys_to_remove = ["classifier.out_proj.bias", "classifier.out_proj.weight", "classifier.dense.weight", "classifier.dense.bias"]
          for key in keys:

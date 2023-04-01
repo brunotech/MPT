@@ -33,10 +33,7 @@ class GlueDataset():
     def __init__(self, tokenizer: AutoTokenizer, data_args, training_args) -> None:
         super().__init__()
 
-        if data_args.dataset_name=="xnli":
-            raw_datasets = load_dataset(data_args.dataset_name, data_args.lang)
-
-        elif data_args.dataset_name=="paws-x":
+        if data_args.dataset_name in ["xnli", "paws-x"]:
             raw_datasets = load_dataset(data_args.dataset_name, data_args.lang)
 
         else:
@@ -55,12 +52,7 @@ class GlueDataset():
         self.sentence1_key, self.sentence2_key = task_to_keys[data_args.dataset_name]
 
         # Padding strategy
-        if data_args.pad_to_max_length:
-            self.padding = "max_length"
-        else:
-            # We will pad later, dynamically at batch creation, to the max sequence length in each batch
-            self.padding = False
-
+        self.padding = "max_length" if data_args.pad_to_max_length else False
         # Some models have set the order of the labels to use, so let's make sure we do use it.
         if not self.is_regression:
             self.label2id = {l: i for i, l in enumerate(self.label_list)}
@@ -121,15 +113,22 @@ class GlueDataset():
         args = (
             (examples[self.sentence1_key],) if self.sentence2_key is None else (examples[self.sentence1_key], examples[self.sentence2_key])
         )
-        result = self.tokenizer(*args, padding=self.padding, max_length=self.max_seq_length, truncation=True)
-
-        return result
+        return self.tokenizer(
+            *args,
+            padding=self.padding,
+            max_length=self.max_seq_length,
+            truncation=True
+        )
 
     def compute_metrics(self, p: EvalPrediction):
         preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
         preds = np.squeeze(preds) if self.is_regression else np.argmax(preds, axis=1)
-        
-        if self.metric==None:
+
+        if (
+            self.metric is None
+            or self.data_args.dataset_name is None
+            and not self.is_regression
+        ):
             return {"accuracy": (preds == p.label_ids).astype(np.float32).mean().item()}
 
         elif self.data_args.dataset_name is not None:
@@ -137,10 +136,8 @@ class GlueDataset():
             if len(result) > 1:
                 result["combined_score"] = np.mean(list(result.values())).item()
             return result
-        elif self.is_regression:
-            return {"mse": ((preds - p.label_ids) ** 2).mean().item()}
         else:
-            return {"accuracy": (preds == p.label_ids).astype(np.float32).mean().item()}
+            return {"mse": ((preds - p.label_ids) ** 2).mean().item()}
 
 
     

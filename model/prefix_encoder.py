@@ -28,13 +28,8 @@ class PrefixEncoder(torch.nn.Module):
         #self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
 
     def forward(self, prefix: torch.Tensor):
-        if self.prefix_projection:
-            prefix_tokens = self.embedding(prefix)
-            past_key_values = self.trans(prefix_tokens)
-        else:
-            past_key_values = self.embedding(prefix)
+        if not self.prefix_projection:
+            return self.embedding(prefix)
 
-        #past_key_values = past_key_values.view(-1, self.config.pre_seq_len, self.config.num_hidden_layers * 2, self.config.hidden_size) 
-        #past_key_values = self.LayerNorm(past_key_values)
-        #past_key_values = past_key_values.view(-1, self.config.pre_seq_len, self.config.num_hidden_layers * 2 * self.config.hidden_size)
-        return past_key_values
+        prefix_tokens = self.embedding(prefix)
+        return self.trans(prefix_tokens)

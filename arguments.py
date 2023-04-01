@@ -203,6 +203,4 @@ def get_args():
     """Parse all the args."""
     #parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments, QuestionAnwseringArguments))
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, QuestionAnwseringArguments))
-    args = parser.parse_args_into_dataclasses()
-
-    return args
+    return parser.parse_args_into_dataclasses()

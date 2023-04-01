@@ -22,11 +22,18 @@ def get_trainer(args):
         use_fast=model_args.use_fast_tokenizer,
         revision=model_args.model_revision,
     )
-    
+
     dataset = GlueDataset(tokenizer, data_args, training_args)
 
-    if not dataset.is_regression:
-        config = AutoConfig.from_pretrained(
+    config = (
+        AutoConfig.from_pretrained(
+            model_args.model_name_or_path,
+            num_labels=dataset.num_labels,
+            finetuning_task=data_args.dataset_name,
+            revision=model_args.model_revision,
+        )
+        if dataset.is_regression
+        else AutoConfig.from_pretrained(
             model_args.model_name_or_path,
             num_labels=dataset.num_labels,
             label2id=dataset.label2id,
@@ -34,13 +41,7 @@ def get_trainer(args):
             finetuning_task=data_args.dataset_name,
             revision=model_args.model_revision,
         )
-    else:
-        config = AutoConfig.from_pretrained(
-            model_args.model_name_or_path,
-            num_labels=dataset.num_labels,
-            finetuning_task=data_args.dataset_name,
-            revision=model_args.model_revision,
-        )
+    )
     #print(config.model_type)  fix_bert=True ????
     model = get_model(model_args, TaskType.SEQUENCE_CLASSIFICATION, config)
 

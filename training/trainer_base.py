@@ -32,12 +32,11 @@ class BaseTrainer(Trainer):
         #eval_dataset = getattr(eval_dataloader, "dataset", None)
         import numpy as np
         model = self._wrap_model(self.model, training=False)
-         
+
         model.eval()
-        R = {}
         r = []
         l= []
-        for step, inputs in enumerate(eval_dataloader):
+        for inputs in eval_dataloader:
             #model.config.use_return_dict=False
             #print(inputs.keys())
             #inputs['return_dict']=True
@@ -61,16 +60,14 @@ class BaseTrainer(Trainer):
         r = np.concatenate(r, axis=0)
         l = np.concatenate(l, axis=0)
 
-        R['input'] = r
-        R['label'] = l
-
+        R = {'input': r, 'label': l}
         import pickle
         checkpointname = data_args.dataset_name
         #checkpointname = 'mnli'
         if model_args.prefix:
-             f = open( 'pt50'+ checkpointname + data_args.lang+ ".pkl","wb")
+            f = open(f'pt50{checkpointname}{data_args.lang}.pkl', "wb")
         else:
-             f = open( 'ft1'+checkpointname + data_args.lang+ ".pkl","wb")
+            f = open(f'ft1{checkpointname}{data_args.lang}.pkl', "wb")
 
         # write the python object (dict) to pickle file
         pickle.dump(R,f)
@@ -102,18 +99,27 @@ class BaseTrainer(Trainer):
             eval_metrics = self.evaluate(ignore_keys=ignore_keys_for_eval)
             self._report_to_hp_search(trial, epoch, eval_metrics)
 
-            if eval_metrics["eval_"+self.test_key] > self.best_metrics["best_eval_"+self.test_key]:
+            if (
+                eval_metrics[f"eval_{self.test_key}"]
+                > self.best_metrics[f"best_eval_{self.test_key}"]
+            ):
                 self.best_metrics["best_epoch"] = epoch
-                self.best_metrics["best_eval_"+self.test_key] = eval_metrics["eval_"+self.test_key]
+                self.best_metrics[f"best_eval_{self.test_key}"] = eval_metrics[
+                    f"eval_{self.test_key}"
+                ]
 
                 if self.predict_dataset is not None:
                     if isinstance(self.predict_dataset, dict):
                         for dataset_name, dataset in self.predict_dataset.items():
                             _, _, test_metrics = self.predict(dataset, metric_key_prefix="test")
-                            self.best_metrics[f"best_test_{dataset_name}_{self.test_key}"] = test_metrics["test_"+self.test_key]
+                            self.best_metrics[
+                                f"best_test_{dataset_name}_{self.test_key}"
+                            ] = test_metrics[f"test_{self.test_key}"]
                     else:
                         _, _, test_metrics = self.predict(self.predict_dataset, metric_key_prefix="test")
-                        self.best_metrics["best_test_"+self.test_key] = test_metrics["test_"+self.test_key]
+                        self.best_metrics[
+                            f"best_test_{self.test_key}"
+                        ] = test_metrics[f"test_{self.test_key}"]
 
             logger.info(f"***** Epoch {epoch}: Best results *****")
             for key, value in self.best_metrics.items():
